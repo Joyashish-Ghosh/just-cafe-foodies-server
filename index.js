@@ -2,7 +2,6 @@ const express = require("express");
 const axios = require("axios");
 const SSLCommerzPayment = require("sslcommerz-lts");
 
-
 const app = express();
 const cors = require("cors");
 
@@ -20,8 +19,12 @@ const store_id = process.env.SSL_COMMERZ_STORE_ID;
 const store_passwd = process.env.SSL_COMMERZ_STORE_PASSWORD;
 const is_live = false;
 
-
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const {
+  MongoClient,
+  ServerApiVersion,
+  ObjectId,
+  CURSOR_FLAGS,
+} = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5ranbba.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0 `;
 // console.log(process.env.DB_USER, process.env.DB_PASS);
 
@@ -105,7 +108,7 @@ async function run() {
       res.send({ admin });
     });
 
-    //chef chech
+    //chef check
     app.get("/users/chef/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       if (email !== req.decoded.email) {
@@ -120,7 +123,38 @@ async function run() {
       }
       res.send({ chef });
     });
-    //chef chech
+
+    app.get("/chef/status", async (req, res) => {
+      let result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.put("/chef/wait-time/:id", async (req, res) => {
+      let time = req.body.newWaitingTime;
+      let id = req.params.id;
+      let query = { _id: new ObjectId(id) };
+      let item = await paymentCollection.findOne(query);
+      console.log(item)
+      if (item) {
+        let updatedDoc = {
+          $set: {
+            waiting_time: time,
+          },
+        };
+        let result = await paymentCollection.updateOne(
+          query,
+          updatedDoc,
+          { upsert: true }
+        );
+        res.send({
+          result: true
+        })
+      }else{
+        res.send({
+          result: false
+        })
+      }
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -265,9 +299,13 @@ async function run() {
         cus_email,
         cus_phone = +8801317896036,
         cart,
+        waiting_time,
+        status,
       } = req.body;
 
       const data = {
+        waiting_time,
+        status,
         store_id: store_id,
         store_passwd: store_passwd,
         total_amount: total_amount,
@@ -318,6 +356,8 @@ async function run() {
           total_amount,
           currency,
           cart,
+          waiting_time,
+          status,
           payment_date: new Date().toISOString(),
           payment_status: false,
         };
