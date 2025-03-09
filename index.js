@@ -188,9 +188,21 @@ async function run() {
 
     //menu related apis
     app.get("/menu", async (req, res) => {
-      const result = await menuCollection.find().toArray();
-      res.send(result);
+      const { date } = req.query;
+      let filter = {};
+    
+      if (date) {
+        filter.date = date;
+      }
+    
+      try {
+        const result = await menuCollection.find(filter).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "An error occurred while fetching the menu." });
+      }
     });
+    
 
     app.get("/menu/:id", async (req, res) => {
       const id = req.params.id;
@@ -214,9 +226,10 @@ async function run() {
           name: item.name,
           category: item.category,
           price: item.price,
-
+          date: data.date ,
           recipe: item.recipe,
           image: item.image,
+         
         },
       };
       const result = await menuCollection.updateOne(filter, updatedDoc);
