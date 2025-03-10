@@ -434,6 +434,12 @@ async function run() {
         res.status(500).send({ error: "Failed to fetch payments" });
       }
     });
+    //report payment adminhome
+    app.get("/payments", async (req, res) => {
+     
+        const result = await paymentCollection.find().toArray();
+        res.send(result);
+    });
     // --------------------------------------
     //payment intent
     // app.post("/create-payment-intent", async (req, res) => {
@@ -446,6 +452,7 @@ async function run() {
     //     payment_method_types: ["card"],
     //   });
 
+    
     //   res.send({
     //     clientSecret: paymentIntent.client_secret,
     //   });
