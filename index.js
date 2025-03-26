@@ -134,25 +134,23 @@ async function run() {
       let id = req.params.id;
       let query = { _id: new ObjectId(id) };
       let item = await paymentCollection.findOne(query);
-      console.log(item)
+      console.log(item);
       if (item) {
         let updatedDoc = {
           $set: {
             waiting_time: time,
           },
         };
-        let result = await paymentCollection.updateOne(
-          query,
-          updatedDoc,
-          { upsert: true }
-        );
+        let result = await paymentCollection.updateOne(query, updatedDoc, {
+          upsert: true,
+        });
         res.send({
-          result: true
-        })
-      }else{
+          result: true,
+        });
+      } else {
         res.send({
-          result: false
-        })
+          result: false,
+        });
       }
     });
 
@@ -190,19 +188,20 @@ async function run() {
     app.get("/menu", async (req, res) => {
       const { date } = req.query;
       let filter = {};
-    
+
       if (date) {
         filter.date = date;
       }
-    
+
       try {
         const result = await menuCollection.find(filter).toArray();
         res.send(result);
       } catch (error) {
-        res.status(500).send({ error: "An error occurred while fetching the menu." });
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching the menu." });
       }
     });
-    
 
     app.get("/menu/:id", async (req, res) => {
       const id = req.params.id;
@@ -226,10 +225,9 @@ async function run() {
           name: item.name,
           category: item.category,
           price: item.price,
-          date: data.date ,
+          date: data.date,
           recipe: item.recipe,
           image: item.image,
-         
         },
       };
       const result = await menuCollection.updateOne(filter, updatedDoc);
@@ -242,12 +240,30 @@ async function run() {
       const result = await menuCollection.deleteOne(query);
       res.send(result);
     });
+    //reviews
+   
+    // POST API to add a review
+    app.post("/reviews", async (req, res) => {
+      const review = req.body; // The review data will come in the request body
+
+      /// Ensure the review has necessary fields (this step is optional but good practice)
+  if (!review.name || !review.details || !review.rating) {
+    return res.status(400).send("Name, details, and rating are required.");
+  }
+
+  try {
+    const result = await reviewCollection.insertOne(review); // Insert the review into the collection
+    res.status(201).send(result); // Send the inserted review object back as response with a 201 status
+  } catch (error) {
+    console.error("Error inserting review:", error);
+    res.status(500).send("Error while adding the review.");
+  }
+});
 
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
       res.send(result);
     });
-
     // carts collection
 
     app.get("/carts", async (req, res) => {
@@ -436,9 +452,8 @@ async function run() {
     });
     //report payment adminhome
     app.get("/payments", async (req, res) => {
-     
-        const result = await paymentCollection.find().toArray();
-        res.send(result);
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
     });
     // --------------------------------------
     //payment intent
@@ -452,7 +467,6 @@ async function run() {
     //     payment_method_types: ["card"],
     //   });
 
-    
     //   res.send({
     //     clientSecret: paymentIntent.client_secret,
     //   });
