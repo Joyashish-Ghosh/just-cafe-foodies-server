@@ -131,29 +131,90 @@ async function run() {
     });
 
     app.put("/chef/wait-time/:id", async (req, res) => {
-      let time = req.body.newWaitingTime;
-      let id = req.params.id;
-      let query = { _id: new ObjectId(id) };
-      let item = await paymentCollection.findOne(query);
-      console.log(item);
-      if (item) {
-        let updatedDoc = {
+      try {
+        const id = req.params.id;
+        const { newWaitingTime } = req.body;
+    
+        const query = { _id: new ObjectId(id) };
+        const item = await paymentCollection.findOne(query);
+    
+        if (!item) {
+          return res.send({ result: false });
+        }
+    
+        const updateDoc = {
           $set: {
-            waiting_time: time,
+            waiting_time: newWaitingTime,
           },
         };
-        let result = await paymentCollection.updateOne(query, updatedDoc, {
-          upsert: true,
-        });
-        res.send({
-          result: true,
-        });
-      } else {
-        res.send({
-          result: false,
-        });
+    
+        const result = await paymentCollection.updateOne(query, updateDoc);
+    
+        res.send({ result: result.modifiedCount > 0 });
+      } catch (error) {
+        console.error("Error updating wait time:", error);
+        res.status(500).send({ result: false, error: "Server error" });
       }
     });
+    
+//For waiter
+app.post("/waiter/submit", async (req, res) => {
+  try {
+    const order = req.body; // Full order object from Waiter UI
+// Check if order is valid
+if (!order || Object.keys(order).length === 0) {
+  return res.status(400).send({ success: false, message: "Invalid order data" });
+}
+    // Example: insert into kitchenOrders collection
+    const result = await kitchenOrdersCollection.insertOne(order);
+    
+    res.send({ success: true, insertedId: result.insertedId });
+  } catch (error) {
+    console.error("Error submitting order to kitchen:", error);
+    res.status(500).send({ success: false });
+  }
+});
+// In your backend (Node.js Express)
+app.put("/chef/wait-time/:id", async (req, res) => {
+  const { newWaitingTime } = req.body;  // Get the new waiting time from the request
+  const { id } = req.params;  // Get the item ID from the URL parameter
+
+  const query = { _id: new ObjectId(id) };  // Query for the item by ID
+  const item = await paymentCollection.findOne(query);
+
+  if (item) {
+    // If the item exists, update the waiting time
+    const updatedDoc = {
+      $set: {
+        waiting_time: newWaitingTime,  // Update the waiting time field
+      },
+    };
+
+    // Update the item in the database
+    await paymentCollection.updateOne(query, updatedDoc);
+
+    res.send({ result: true });  // Send success response
+  } else {
+    res.send({ result: false });  // Send failure response if item not found
+  }
+});
+
+app.get("/waiter", async (req, res) => {
+  try {
+    const query = {
+
+      payment_status: true,
+    };
+
+    const result = await paymentCollection.find(query).toArray();
+    res.send(result);
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    res.status(500).send({ error: "Failed to fetch payments" });
+  }
+});
+
+
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -559,22 +620,7 @@ async function run() {
     });
 
 
-    //For waiter
-    app.get("/waiter", async (req, res) => {
-      try {
-        const query = {
-
-          payment_status: true,
-        };
-
-        const result = await paymentCollection.find(query).toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching payments:", error);
-        res.status(500).send({ error: "Failed to fetch payments" });
-      }
-    });
-
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
