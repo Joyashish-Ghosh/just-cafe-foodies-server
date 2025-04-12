@@ -48,6 +48,7 @@ async function run() {
     const reviewCollection = client.db("cafeDB").collection("reviews");
     const cartCollection = client.db("cafeDB").collection("carts");
     const paymentCollection = client.db("cafeDB").collection("payments");
+    const charityCollection = client.db("cafeDB").collection("charity");
 
     //jwt related api
     app.post("/jwt", async (req, res) => {
@@ -241,24 +242,24 @@ async function run() {
       res.send(result);
     });
     //reviews
-   
+
     // POST API to add a review
     app.post("/reviews", async (req, res) => {
       const review = req.body; // The review data will come in the request body
 
       /// Ensure the review has necessary fields (this step is optional but good practice)
-  if (!review.name || !review.details || !review.rating) {
-    return res.status(400).send("Name, details, and rating are required.");
-  }
+      if (!review.name || !review.details || !review.rating) {
+        return res.status(400).send("Name, details, and rating are required.");
+      }
 
-  try {
-    const result = await reviewCollection.insertOne(review); // Insert the review into the collection
-    res.status(201).send(result); // Send the inserted review object back as response with a 201 status
-  } catch (error) {
-    console.error("Error inserting review:", error);
-    res.status(500).send("Error while adding the review.");
-  }
-});
+      try {
+        const result = await reviewCollection.insertOne(review); // Insert the review into the collection
+        res.status(201).send(result); // Send the inserted review object back as response with a 201 status
+      } catch (error) {
+        console.error("Error inserting review:", error);
+        res.status(500).send("Error while adding the review.");
+      }
+    });
 
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
@@ -523,6 +524,38 @@ async function run() {
         orders,
         revenu,
       });
+    });
+    //extra food
+    // POST route to insert extraFoodItems
+    app.post("/extra-food", async (req, res) => {
+      try {
+        const items = req.body;
+
+        if (!Array.isArray(items)) {
+          return res
+            .status(400)
+            .json({ error: "Expected an array of food items" });
+        }
+
+        const result = await charityCollection.insertMany(items);
+        res.status(201).json({
+          insertedCount: result.insertedCount,
+          insertedIds: result.insertedIds,
+        });
+      } catch (error) {
+        console.error("❌ Error inserting extra food items:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+    // GET route to retrieve extraFoodItems
+    app.get("/extra-food", async (req, res) => {
+      try {
+        const items = await charityCollection.find().toArray();
+        res.status(200).json(items);
+      } catch (error) {
+        console.error("❌ Error fetching extra food items:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
     });
 
     // Send a ping to confirm a successful connection
