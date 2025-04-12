@@ -558,6 +558,23 @@ async function run() {
       }
     });
 
+
+    //For waiter
+    app.get("/waiter", async (req, res) => {
+      try {
+        const query = {
+
+          payment_status: true,
+        };
+
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching payments:", error);
+        res.status(500).send({ error: "Failed to fetch payments" });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
