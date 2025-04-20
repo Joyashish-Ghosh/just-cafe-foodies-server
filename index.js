@@ -49,6 +49,8 @@ async function run() {
     const cartCollection = client.db("cafeDB").collection("carts");
     const paymentCollection = client.db("cafeDB").collection("payments");
     const charityCollection = client.db("cafeDB").collection("charity");
+    const kitchenOrdersCollection = client.db("cafeDB").collection("kitchenOrders");
+
 
     //jwt related api
     app.post("/jwt", async (req, res) => {
@@ -157,24 +159,33 @@ async function run() {
       }
     });
     
-//For waiter
+// wwaiter-role
 app.post("/waiter/submit", async (req, res) => {
   try {
-    const order = req.body; // Full order object from Waiter UI
-// Check if order is valid
-if (!order || Object.keys(order).length === 0) {
-  return res.status(400).send({ success: false, message: "Invalid order data" });
-}
-    // Example: insert into kitchenOrders collection
+    const order = req.body;
+
+    console.log("Received order from frontend:", order);
+
+    if (!order || !order.order_id || !Array.isArray(order.cart)) {
+      console.error("Invalid order payload:", order);
+      return res.status(400).send({ success: false, message: "Invalid order data" });
+    }
+
+    // Add extra fields before insert
+    order.status = "Completed";
+    order.submittedAt = new Date();
+
     const result = await kitchenOrdersCollection.insertOne(order);
-    
     res.send({ success: true, insertedId: result.insertedId });
+
   } catch (error) {
-    console.error("Error submitting order to kitchen:", error);
-    res.status(500).send({ success: false });
+    console.error("❌ Error submitting order to kitchen:", error);
+    res.status(500).send({ success: false, message: "Server error" });
   }
 });
-// In your backend (Node.js Express)
+
+
+//chef-wait-time
 app.put("/chef/wait-time/:id", async (req, res) => {
   const { newWaitingTime } = req.body;  // Get the new waiting time from the request
   const { id } = req.params;  // Get the item ID from the URL parameter
@@ -215,12 +226,21 @@ app.get("/waiter", async (req, res) => {
 });
 
 
+ //admin check waiter food completed
+ 
 
-    app.post("/users", async (req, res) => {
-      const user = req.body;
-      const result = await userCollection.insertOne(user);
-      res.send(result);
-    });
+// Get all kitchen orders
+app.get("/kitchenOrders", async (req, res) => {
+  try {
+    const kitchenOrders = await kitchenOrdersCollection.find().toArray();
+    res.status(200).json(kitchenOrders); // Returns all kitchen orders
+  } catch (error) {
+    console.error("❌ Error fetching kitchen orders:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
     app.patch(
       "/users/admin/:id",
@@ -618,6 +638,8 @@ app.get("/waiter", async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
       }
     });
+
+   
 
 
     
